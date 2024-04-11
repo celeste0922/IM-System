@@ -3,6 +3,7 @@ package Server
 import (
 	"IM-System/User"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 )
@@ -14,7 +15,7 @@ type Server struct {
 	//在线用户列表
 	OnlineMap map[string]*User.User
 	//全局Map加锁
-	mapLock sync.RWMutex
+	MapLock sync.RWMutex
 
 	//消息广播的channel
 	Message chan string
@@ -37,11 +38,11 @@ func (this *Server) ListenMessager() {
 		msg := <-this.Message
 
 		//将msg发送给全部在线user
-		this.mapLock.Lock()
+		this.MapLock.Lock()
 		for _, cli := range this.OnlineMap {
 			cli.C <- msg
 		}
-		this.mapLock.Unlock()
+		this.MapLock.Unlock()
 	}
 }
 
@@ -55,15 +56,34 @@ func (this *Server) Handler(conn net.Conn) {
 	//当前链接的业务....
 	fmt.Println("链接建立成功....")
 
-	user := User.NewUser(conn)
+	user := User.NewUser(conn, this)
 
-	//用户上线，先加入OnlineMap
-	this.mapLock.Lock()
-	this.OnlineMap[user.Name] = user
-	this.mapLock.Unlock()
+	//用户上线，先加入OnlineMap并广播当前用户上线消息
+	user.Online()
 
-	//广播当前用户上线消息
-	this.Broad(user, "已上线")
+	//接受客户端消息
+	go func() {
+		buf := make([]byte, 4096)
+		for {
+			n, err := conn.Read(buf)
+			//客户端关闭,用户下线
+			if n == 0 {
+				user.Offline()
+				return
+			}
+			//有错误提示
+			if err != nil && err != io.EOF {
+				fmt.Println("conn read err:", err)
+				return
+			}
+
+			//提取用户消息
+			msg := string(buf[:n-1])
+
+			//用户处理消息
+			user.DoMessage(msg)
+		}
+	}()
 
 	//当前handler阻塞
 	select {}
