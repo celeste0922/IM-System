@@ -1,7 +1,6 @@
-package User
+package main
 
 import (
-	"IM-System/Server"
 	"net"
 )
 
@@ -11,11 +10,11 @@ type User struct {
 	C       chan string
 	conn    net.Conn
 
-	Server *Server.Server
+	Server *Server
 }
 
 // 创建用户Api
-func NewUser(conn net.Conn, Server *Server.Server) *User {
+func NewUser(conn net.Conn, Server *Server) *User {
 	userAddr := conn.RemoteAddr().String()
 	user := &User{
 		Name:    userAddr,
@@ -53,10 +52,25 @@ func (this *User) Offline() {
 	this.Server.Broad(this, "Offline...")
 }
 
+// 给对应客户端发送消息
+func (this *User) SendMessage(msg string) {
+	this.conn.Write([]byte(msg))
+}
+
 // 处理消息
 func (this *User) DoMessage(msg string) {
+	if msg == "who" {
+		//查询当前所有在线用户
+		this.Server.MapLock.Lock()
+		for _, user := range this.Server.OnlineMap {
+			onlineMsg := "[" + this.Address + "]" + user.Name + " is online...\n"
+			this.SendMessage(onlineMsg)
+		}
+		this.Server.MapLock.Unlock()
+	} else {
+		this.Server.Broad(this, msg)
+	}
 
-	this.Server.Broad(this, msg)
 }
 
 // 监听当前用户的channel,一旦有消息，发送给对应客户端

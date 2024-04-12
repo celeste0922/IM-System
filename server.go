@@ -1,7 +1,6 @@
-package Server
+package main
 
 import (
-	"IM-System/User"
 	"fmt"
 	"io"
 	"net"
@@ -13,7 +12,7 @@ type Server struct {
 	Port int
 
 	//在线用户列表
-	OnlineMap map[string]*User.User
+	OnlineMap map[string]*User
 	//全局Map加锁
 	MapLock sync.RWMutex
 
@@ -26,7 +25,7 @@ func NewServer(ip string, port int) *Server {
 	server := &Server{
 		Ip:        ip,
 		Port:      port,
-		OnlineMap: make(map[string]*User.User),
+		OnlineMap: make(map[string]*User),
 		Message:   make(chan string),
 	}
 	return server
@@ -47,7 +46,7 @@ func (this *Server) ListenMessager() {
 }
 
 // 广播消息的方法
-func (this *Server) Broad(user *User.User, msg string) {
+func (this *Server) Broad(user *User, msg string) {
 	sendMsg := "[" + user.Address + "]" + user.Name + ":" + msg
 	this.Message <- sendMsg
 }
@@ -56,7 +55,7 @@ func (this *Server) Handler(conn net.Conn) {
 	//当前链接的业务....
 	fmt.Println("链接建立成功....")
 
-	user := User.NewUser(conn, this)
+	user := NewUser(conn, this)
 
 	//用户上线，先加入OnlineMap并广播当前用户上线消息
 	user.Online()
