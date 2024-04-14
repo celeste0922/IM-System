@@ -74,8 +74,11 @@ func (this *User) DoMessage(msg string) {
 
 		//判断nane是否存在
 		_, ok := this.Server.OnlineMap[newName]
+		if newName == "exit" {
+			ok = false
+		}
 		if ok {
-			this.SendMessage("newName is exist...")
+			this.SendMessage("newName is exist or illegal...")
 		} else {
 			this.Server.MapLock.Lock()
 			delete(this.Server.OnlineMap, this.Name)
