@@ -74,6 +74,27 @@ func (client *Client) UpdateName() bool {
 	return true
 }
 
+func (client *Client) PublicChat() {
+	//提示用户输入信息
+	var chatMsg string
+	fmt.Println("Please enter Chat content,enter 'exit' to exit... ")
+	fmt.Scanln(&chatMsg)
+	for chatMsg != "exit" {
+		//发送给服务器
+		if len(chatMsg) != 0 { //消息不为空
+			sendMsg := chatMsg + "\n"
+			_, err := client.conn.Write([]byte(sendMsg))
+			if err != nil {
+				fmt.Println("client.conn.Write err:", err)
+				break
+			}
+		}
+		chatMsg = ""
+		fmt.Println("Please enter Chat content,enter 'exit' to exit... ")
+		fmt.Scanln(&chatMsg)
+	}
+}
+
 func (client *Client) Run() {
 	for client.flag != 0 {
 		for client.menu() != true { //非法输入时一直循环读取菜单选项
@@ -82,7 +103,8 @@ func (client *Client) Run() {
 		switch client.flag {
 		case 1:
 			//广播
-			fmt.Println("Broadcast mode...")
+			//fmt.Println("Broadcast mode...")
+			client.PublicChat()
 			break
 		case 2:
 			//私聊
